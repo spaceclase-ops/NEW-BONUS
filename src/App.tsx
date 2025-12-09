@@ -5,7 +5,7 @@ import {
   Users, DollarSign, Target, Menu, X, Crown, Activity, Wallet, Hash, 
   Star, Award, Zap, BarChart3, ArrowUpRight, ArrowDownRight, Sparkles,
   ChevronUp, Calendar, Clock, CheckCircle2, Edit3, Save, ChevronDown,
-  Trash2, Search, Filter, History
+  Trash2, Search, Filter, History, Lightbulb
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -19,6 +19,113 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const ADMIN_ID = '43b1056f-50fd-40a0-9ccf-f2f4c4a57420';
+
+// --- Content Constants (Insights & Tips) ---
+const INSIGHTS = [
+  "מכירה לא מתחילה כשהלקוח אומר כן, אלא כשהוא מפסיק לברוח.",
+  "כל התנגדות היא ניסיון מגושם להגיד לך “תבין אותי”.",
+  "מי שמפחד משתיקה – מפסיד מכירה.",
+  "השינוי הכי קטן בשגרה שלך ינצח את המוטיבציה הכי גדולה שלו.",
+  "איש מכירות טוב לא משכנע: הוא מסיר רעש.",
+  "לקוח קונה כשהוא מרגיש שליטה, לא כשהוא מרגיש שאתה רוצה.",
+  "80 אחוז מהעסקאות נופלות לא על המחיר, אלא על חוסר בהירות.",
+  "אם אתה לא יודע מה הלקוח מפחד לאבד – אתה מוכר בעיוורון.",
+  "“לא” ראשון זה נשימה. “לא” שני זה מידע. “לא” שלישי זה דלת.",
+  "אתה לא מוכר מוצר: אתה מוכר פתרון לבעיה שאפילו הוא לא ניסח.",
+  "הרגל אחד טוב ביום ינצח כל קורס מכירות שתיקח.",
+  "אם אתה לא מחזיק זהות של איש מכירות מצוין – שום טכניקה לא תדבק.",
+  "הלקוח לא טיפש: הוא פשוט עסוק בעצמו.",
+  "אתה לא אמור לסגור הכול, אלא להשאיר הרושם שאין לו למה ללכת לאחר.",
+  "מי שלוחץ – מפספס. מי שמכוון – סוגר.",
+  "כל שיחה היא משחק שחמאטי: אם אתה לא רואה שני מהלכים קדימה, אתה מפסיד.",
+  "הנאה במכירות באה מזה שאתה מבין אנשים, לא מזה שאתה סוגר אותם.",
+  "אנשים קונים ביטחון, לא מבצעים.",
+  "אתה לא צריך להיות מיוחד, אתה צריך להיות ברור.",
+  "מכירה טובה מתחילה בשאלה טובה, לא בתסריט.",
+  "אתה בוחר בכל רגע אם להיות מגיב או מנהל שיחה.",
+  "שקט פנימי הוא נשק.",
+  "ההצעה שלך לא יקרה – היא לא מובנת.",
+  "איש מכירות מתוח זה כמו נהג שיכור. הוא עושה טעויות בלי לשים לב.",
+  "אם הלקוח לא מודה בבעיה – אין לך מה לפתור.",
+  "אתה לא מתמודד מול לקוח: אתה מתמודד מול ההטיות שלו.",
+  "המחיר הוא תירוץ של מי שלא מבין את הערך.",
+  "אתה לא בא לשכנע – אתה בא לברר.",
+  "השיחה לא נגמרת כשהוא אומר לא. היא מתחילה כשהוא מסביר למה.",
+  "מכירה היא לא מאבק. היא עיצוב מציאות.",
+  "תפסיק לחפש וייב. תחפש פוקוס.",
+  "אם אין תהליך – יש כאוס.",
+  "תנהל את האנרגיה שלך, לא את המוטיבציה שלך.",
+  "העוגנים שלך משפיעים על העסקאות שלך.",
+  "כל יום מכירות מתחיל בהגדרה מי אתה.",
+  "תוריד ציפיות. תעלה ביצועים.",
+  "הדרך היחידה לנצח דחיינות היא פעולה של שתי דקות.",
+  "שים את הקשה ראשון. תן למוח להבין מי בעל הבית.",
+  "אתה לא מפחד מהלקוח: אתה מפחד מהאפשרות שתתאכזב מעצמך.",
+  "הכול חוזר למשחקי זהות.",
+  "מי שלא יוזם – מגיב. מי שמגיב – מפסיד.",
+  "תפריד בין אתה לבין התוצאה.",
+  "כישלון לא מסמן אותך. הוא מכייל אותך.",
+  "השאלות שלך מייצרות את המציאות שלו.",
+  "איום אמין משפיע. איום לא אמין מרסק אותך.",
+  "אין מכירה בלי סיכון, אבל הסיכון הכי גדול הוא לשחק קטן.",
+  "אתה לא בשליטה על הלקוח, רק על מה שאתה שואל.",
+  "כל יום בלי אימון הוא יום שאתה נשאר אותו דבר.",
+  "מי שמבין תמריצים מבין אנשים.",
+  "אין שחקן טוב בלי מחברת תובנות."
+];
+
+const GOLDEN_TIPS = [
+  "פתח כל שיחה בשאלה מכיילת שמעבירה שליטה ללקוח (“מה חשוב שנפתור היום?”).",
+  "תן לו להגיד “לא” מוקדם. זה מרגיע ומוריד מגננות.",
+  "תייג רגשות: “נשמע שאתה חושש להתחייב”. זה מפוצץ לחץ.",
+  "חקה קלות את המילים והקצב שלו – לא יותר מדי.",
+  "בקש ממנו להסביר את המסגרת: “איך נראה אצלך תהליך קבלת החלטות?”",
+  "אל תיתן מספר עגול בהצעה. מספרים מדויקים משדרים מומחיות.",
+  "השתמש בדד ליין רק כשהוא אמיתי. אחרת אתה מאבד אמון.",
+  "שאל שאלות “איך” ו”מה”, לא “למה” – זה עוקף התנגדות.",
+  "אל תתפשר באמצע. חפש ערך חדש.",
+  "חפש את הברבור השחור: פרט שהופך את כל השיחה.",
+  "בנה הרגל פתיחה קבוע לכל שיחה: אותה נשימה, אותה שאלה ראשונה.",
+  "הצמד את הרגל המכירה להרגל קיים: קפה = התחלת יום מכירות.",
+  "תעצב את סביבת העבודה כך שתכוון אותך לדבר ראשון לשיחות.",
+  "חתוך עומס קטן: טמפלייטים לתסריטים, מיילים ופתיחות.",
+  "כל יום: שיחה אחת מעבר לרגיל. שינוי קטן מצטבר.",
+  "פרק משימות מכירה לחלקים של שתי דקות.",
+  "אל תסמוך על מוטיבציה. תסמוך על סביבה.",
+  "תתגמל את עצמך על עקביות, לא על תוצאה.",
+  "הפוך מכשולים לבלתי אפשריים: חסום הסחות.",
+  "תמדוד רק שני דברים: שיחות איכותיות, לימוד יומי.",
+  "עגן את המחיר בנקודת ייחוס גבוהה יותר.",
+  "תשתמש בכוח ה”חינם” בחוכמה: צ’ופר קטן יוצר מוטיבציה.",
+  "תבין שהלקוח נשאר עם ברירת מחדל – תהפוך אותך לברירת המחדל.",
+  "אל תתן יותר מדי אפשרויות – עומס מידע מפיל מכירה.",
+  "תזהה מתי הלקוח ב”מצב חם” (רגשי) ואל תדבר לוגיקה.",
+  "השתמש בציפייה: “אנשים שקנו את זה דיווחו על…”",
+  "אל תעריך יותר מדי את ההחלטות שלו – הוא מושפע מהקשר.",
+  "אל תיתן לו להרגיש בעלות לפני שמבין ערך.",
+  "הובל אותו לבחור בין שתי אפשרויות שאתה רוצה.",
+  "אל תתכנן שיחה לפי מה שנראה לך, אלא לפי מה שמפעיל אותו.",
+  "שחק לטווח ארוך – גם אם העסקה לא נסגרת.",
+  "במצבי אולטימטום: תהיה אתה זה שמגדיר את המסגרת.",
+  "תבנה מוניטין של מי שאומר אמת גם כשהיא לא נעימה.",
+  "תן ללקוח להבין שהשיתוף פעולה משתלם יותר ממאבק.",
+  "אל תאיים באיום שאינך יכול לבצע.",
+  "למד לזהות מי במשחק מולך: הנחות יסוד משנות הכול.",
+  "אל תיכנס למלחמות מחיר – זה משחק סכום אפס.",
+  "תן ללקוח “נצחון קטן” כדי להרגיש בשליטה.",
+  "הבן מתי הלקוח מנסה לאזן כוח מולך.",
+  "במו”מ: שקט הוא מהלך.",
+  "תמריץ תמיד צריך להיות קשור לערך, לא לכסף.",
+  "אל תדליק תחרות פנימית לא חכמה – היא שוחקת.",
+  "תן גזר קטן שמתגמל עשייה, לא תוצאה.",
+  "חפש מה מניע אותו באמת – לא מה שהוא אומר.",
+  "עונש כמעט תמיד מחזק התנהגות שלילית, לא מחליש.",
+  "השתמש בתמריצים רגשיים: שייכות, ביטחון, הערכה.",
+  "אל תיתן יתר מדי – זה הורס מוטיבציה פנימית.",
+  "תערבב בין תמריץ קצר טווח לבין משמעות ארוכת טווח.",
+  "תסביר את “למה” התהליך – לא רק את “איך”.",
+  "תייצר אשליית התקדמות: גם שלבים קטנים מניעים."
+];
 
 // --- Types ---
 interface Sale {
@@ -60,6 +167,44 @@ const GlassCard = ({ children, className = '' }: { children: React.ReactNode, cl
     {children}
   </motion.div>
 );
+
+const DailyInspiration = () => {
+  // Logic to select a tip based on the date (so it stays consistent for the day)
+  const today = new Date();
+  const seed = today.getDate() + today.getMonth() * 31 + today.getFullYear();
+  
+  const insightIndex = seed % INSIGHTS.length;
+  const tipIndex = seed % GOLDEN_TIPS.length;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-gradient-to-br from-indigo-900/40 to-slate-900/40 border border-indigo-500/20 p-5 rounded-2xl relative overflow-hidden flex flex-col justify-center min-h-[100px]"
+      >
+        <div className="absolute top-0 right-0 p-3 opacity-20"><Sparkles size={40} /></div>
+        <h4 className="text-indigo-400 font-bold text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
+          <Sparkles size={14} /> תובנה יומית
+        </h4>
+        <p className="text-white font-medium text-lg leading-relaxed">"{INSIGHTS[insightIndex]}"</p>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="bg-gradient-to-br from-amber-900/40 to-slate-900/40 border border-amber-500/20 p-5 rounded-2xl relative overflow-hidden flex flex-col justify-center min-h-[100px]"
+      >
+        <div className="absolute top-0 right-0 p-3 opacity-20"><Lightbulb size={40} /></div>
+        <h4 className="text-amber-400 font-bold text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
+          <Lightbulb size={14} /> טיפ הזהב שלי
+        </h4>
+        <p className="text-white font-medium text-lg leading-relaxed">"{GOLDEN_TIPS[tipIndex]}"</p>
+      </motion.div>
+    </div>
+  );
+};
 
 const StatCard = ({ title, value, icon: Icon, color, subText }: any) => {
   const gradients: any = {
@@ -141,10 +286,11 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 
 const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: { 
   isOpen: boolean; onClose: () => void; profile: UserProfile | null; 
-  onSave: (id: string, financial: number, quantity: number) => void;
+  onSave: (id: string, financial: number, quantity: number) => Promise<void>;
 }) => {
   const [financialTarget, setFinancialTarget] = useState(profile?.financial_target || 100000);
   const [quantityTarget, setQuantityTarget] = useState(profile?.quantity_target || 20);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -154,6 +300,13 @@ const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: {
   }, [profile]);
 
   if (!isOpen || !profile) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(profile.id, financialTarget, quantityTarget);
+    setSaving(false);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onClose}>
@@ -180,11 +333,11 @@ const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: {
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={() => { onSave(profile.id, financialTarget, quantityTarget); onClose(); }}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2">
-            <Save size={18} /> שמור
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50">
+            {saving ? <Activity className="animate-spin" size={18} /> : <Save size={18} />} שמור
           </button>
-          <button onClick={onClose} className="flex-1 bg-slate-800 text-slate-300 py-3 rounded-xl font-bold hover:bg-slate-700 transition">ביטול</button>
+          <button onClick={onClose} disabled={saving} className="flex-1 bg-slate-800 text-slate-300 py-3 rounded-xl font-bold hover:bg-slate-700 transition">ביטול</button>
         </div>
       </motion.div>
     </div>
@@ -312,8 +465,12 @@ function App() {
   };
 
   const handleUpdateTargets = async (userId: string, financialTarget: number, quantityTarget: number) => {
-    await supabase.from('profiles').update({ financial_target: financialTarget, quantity_target: quantityTarget }).eq('id', userId);
-    fetchData();
+    const { error } = await supabase.from('profiles').update({ financial_target: financialTarget, quantity_target: quantityTarget }).eq('id', userId);
+    if (!error) {
+        await fetchData(); // Wait for data to refresh to ensure UI updates
+    } else {
+        alert("שגיאה בעדכון יעדים: " + error.message);
+    }
   };
 
   const handleDeleteSale = async (saleId: string) => {
@@ -465,7 +622,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex overflow-hidden selection:bg-blue-500/30" dir="rtl">
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex overflow-hidden selection:bg-blue-500/30 w-full" dir="rtl">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-3xl"></div>
@@ -546,14 +703,14 @@ function App() {
 
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative w-full">
+      <div className="flex-1 flex flex-col min-h-screen relative w-full overflow-x-hidden">
         <header className="lg:hidden bg-[#1e293b]/80 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center sticky top-0 z-30">
           <div className="flex items-center gap-2"><Wallet size={20} className="text-blue-500" /><h1 className="font-bold text-lg text-white">כמה הרווחתי?</h1></div>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-slate-300"><Menu size={24} /></button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 w-full">
-          <div className="w-full space-y-8">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 w-full max-w-[100vw]">
+          <div className="w-full space-y-8 max-w-7xl mx-auto">
             
             {activeTab === 'admin_history' && isAdmin && (
                <div className="space-y-6 animate-fade-in">
@@ -772,6 +929,10 @@ function App() {
                   <StatCard title="מחזור מכירות" value={`₪${myTotalSales.toLocaleString()}`} icon={TrendingUp} color="blue" subText="שווי עסקאות (כולל מע״מ)" />
                   <StatCard title="עסקאות" value={myTotalDeals} icon={Target} color="purple" subText={`יעד: ${myProfile?.quantity_target || 20} עסקאות`} />
                 </div>
+                
+                {/* --- תוספת: תובנות יומיות וטיפ הזהב --- */}
+                <DailyInspiration />
+                
                 <GlassCard>
                   <h3 className="font-bold text-white text-lg mb-6">יעדים והתקדמות</h3>
                   <ProgressBar current={myTotalSales} target={myProfile?.financial_target || 100000} label="יעד כספי (מחזור)" color="bg-gradient-to-r from-blue-600 to-cyan-400" />
@@ -803,7 +964,7 @@ function App() {
                   </GlassCard>
                 </div>
                 
-                {/* --- תוספת: היסטוריית מכירות אישית --- */}
+                {/* היסטוריית מכירות אישית */}
                 <GlassCard className="overflow-hidden p-0">
                   <div className="p-6 border-b border-slate-700/50 bg-slate-900/30">
                     <h3 className="font-bold text-lg text-white flex items-center gap-2">
