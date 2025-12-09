@@ -5,7 +5,7 @@ import {
   Users, DollarSign, Target, Menu, X, Crown, Activity, Wallet, Hash, 
   Star, Award, Zap, BarChart3, ArrowUpRight, ArrowDownRight, Sparkles,
   ChevronUp, Calendar, Clock, CheckCircle2, Edit3, Save, ChevronDown,
-  Trash2, Search, Filter, History, Lightbulb
+  Trash2, Search, Filter, History, Lightbulb, Calculator, Settings
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -169,7 +169,6 @@ const GlassCard = ({ children, className = '' }: { children: React.ReactNode, cl
 );
 
 const DailyInspiration = () => {
-  // Logic to select a tip based on the date (so it stays consistent for the day)
   const today = new Date();
   const seed = today.getDate() + today.getMonth() * 31 + today.getFullYear();
   
@@ -206,23 +205,25 @@ const DailyInspiration = () => {
   );
 };
 
-const StatCard = ({ title, value, icon: Icon, color, subText }: any) => {
+const StatCard = ({ title, value, icon: Icon, color, subText, onClick }: any) => {
   const gradients: any = {
     blue: "from-blue-600 to-cyan-400",
     purple: "from-purple-600 to-pink-500",
     green: "from-emerald-500 to-teal-400",
     orange: "from-orange-500 to-yellow-400",
-    indigo: "from-indigo-600 to-blue-500"
+    indigo: "from-indigo-600 to-blue-500",
+    red: "from-red-600 to-pink-600"
   };
   
   return (
-    <GlassCard className="group hover:border-slate-600 transition-all duration-300 hover:scale-[1.02]">
+    <GlassCard className={`group hover:border-slate-600 transition-all duration-300 hover:scale-[1.02] ${onClick ? 'cursor-pointer' : ''}`}>
       <div className={`absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br ${gradients[color]} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity duration-500`}></div>
-      <div className="relative z-10">
+      <div className="relative z-10" onClick={onClick}>
         <div className="flex justify-between items-start mb-4">
           <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${gradients[color]} shadow-lg text-white`}>
             <Icon size={26} />
           </div>
+          {onClick && <Edit3 size={16} className="text-slate-500 hover:text-white transition-colors" />}
         </div>
         <div>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
@@ -284,18 +285,23 @@ const AnimatedNumber = ({ value }: { value: number }) => {
   return <span>{displayValue.toLocaleString()}</span>;
 };
 
-const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: { 
+// --- Updated EditUserModal to handle settings ---
+const EditUserModal = ({ isOpen, onClose, profile, onSave }: { 
   isOpen: boolean; onClose: () => void; profile: UserProfile | null; 
-  onSave: (id: string, financial: number, quantity: number) => Promise<void>;
+  onSave: (id: string, name: string, financial: number, quantity: number, isAdmin: boolean) => Promise<void>;
 }) => {
   const [financialTarget, setFinancialTarget] = useState(profile?.financial_target || 100000);
   const [quantityTarget, setQuantityTarget] = useState(profile?.quantity_target || 20);
+  const [name, setName] = useState(profile?.full_name || '');
+  const [isAdmin, setIsAdmin] = useState(profile?.is_admin || false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setFinancialTarget(profile.financial_target || 100000);
       setQuantityTarget(profile.quantity_target || 20);
+      setName(profile.full_name || '');
+      setIsAdmin(profile.is_admin || false);
     }
   }, [profile]);
 
@@ -303,7 +309,7 @@ const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: {
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(profile.id, financialTarget, quantityTarget);
+    await onSave(profile.id, name, financialTarget, quantityTarget, isAdmin);
     setSaving(false);
     onClose();
   };
@@ -317,25 +323,39 @@ const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: {
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-          <Target className="text-blue-400" size={24} />
-          עריכת יעדים - {profile.full_name || profile.email}
+          <Settings className="text-blue-400" size={24} />
+          עריכת נציג - {profile.email}
         </h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">יעד כספי חודשי (₪)</label>
-            <input type="number" value={financialTarget} onChange={e => setFinancialTarget(Number(e.target.value))}
+            <label className="block text-sm font-medium text-slate-400 mb-2">שם מלא</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)}
               className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">יעד כמותי (עסקאות)</label>
-            <input type="number" value={quantityTarget} onChange={e => setQuantityTarget(Number(e.target.value))}
-              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">יעד כספי (₪)</label>
+              <input type="number" value={financialTarget} onChange={e => setFinancialTarget(Number(e.target.value))}
+                className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">יעד כמותי</label>
+              <input type="number" value={quantityTarget} onChange={e => setQuantityTarget(Number(e.target.value))}
+                className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500" />
+            </div>
+          </div>
+          <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+             <span className="text-sm text-slate-300">הרשאת ניהול (Admin)</span>
+             <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={isAdmin} onChange={e => setIsAdmin(e.target.checked)} className="sr-only peer" />
+                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+             </label>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={handleSave} disabled={saving}
             className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50">
-            {saving ? <Activity className="animate-spin" size={18} /> : <Save size={18} />} שמור
+            {saving ? <Activity className="animate-spin" size={18} /> : <Save size={18} />} שמור שינויים
           </button>
           <button onClick={onClose} disabled={saving} className="flex-1 bg-slate-800 text-slate-300 py-3 rounded-xl font-bold hover:bg-slate-700 transition">ביטול</button>
         </div>
@@ -428,8 +448,27 @@ function App() {
   // Admin History Filter State
   const [historyRepFilter, setHistoryRepFilter] = useState('all');
 
+  // Admin Monthly Global Target (Stored in LocalStorage to avoid Schema change)
+  const [companyMonthlyTarget, setCompanyMonthlyTarget] = useState(500000);
+
+  useEffect(() => {
+    const savedTarget = localStorage.getItem('admin_company_target');
+    if (savedTarget) setCompanyMonthlyTarget(Number(savedTarget));
+  }, []);
+
+  const updateCompanyTarget = () => {
+    const newTarget = prompt("הזן יעד חודשי לחברה (₪):", companyMonthlyTarget.toString());
+    if (newTarget && !isNaN(Number(newTarget))) {
+      setCompanyMonthlyTarget(Number(newTarget));
+      localStorage.setItem('admin_company_target', newTarget);
+    }
+  };
+
   const isAdmin = session?.user?.id === ADMIN_ID;
-  const salesReps = profiles.filter(p => p.id !== ADMIN_ID);
+  
+  // -- Filter out Admins from Sales Reps Lists --
+  const salesReps = profiles.filter(p => !p.is_admin);
+  
   const selectedMonthData = monthOptions.find(m => m.value === selectedMonth) || monthOptions[0];
 
   useEffect(() => {
@@ -464,13 +503,26 @@ function App() {
     fetchData();
   };
 
-  const handleUpdateTargets = async (userId: string, financialTarget: number, quantityTarget: number) => {
-    const { error } = await supabase.from('profiles').update({ financial_target: financialTarget, quantity_target: quantityTarget }).eq('id', userId);
+  const handleUpdateProfile = async (userId: string, name: string, financialTarget: number, quantityTarget: number, isAdmin: boolean) => {
+    const { error } = await supabase.from('profiles').update({ 
+        full_name: name,
+        financial_target: financialTarget, 
+        quantity_target: quantityTarget,
+        is_admin: isAdmin
+    }).eq('id', userId);
+    
     if (!error) {
-        await fetchData(); // Wait for data to refresh to ensure UI updates
+        await fetchData(); 
     } else {
-        alert("שגיאה בעדכון יעדים: " + error.message);
+        alert("שגיאה בעדכון פרופיל: " + error.message);
     }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+      if(!window.confirm('זהירות: האם למחוק את המשתמש? המידע עלול ללכת לאיבוד.')) return;
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if(error) alert("שגיאה במחיקה (ייתכן שיש למשתמש מכירות מקושרות): " + error.message);
+      else fetchData();
   };
 
   const handleDeleteSale = async (saleId: string) => {
@@ -533,7 +585,7 @@ function App() {
                          saleDate.getFullYear() === selectedMonthData.year;
       
       if (userId) return monthMatch && s.user_id === userId;
-      return monthMatch && s.user_id !== ADMIN_ID; // General list excludes admin test sales usually
+      return monthMatch && s.user_id !== ADMIN_ID; 
     });
   };
 
@@ -554,6 +606,9 @@ function App() {
   const companyTotalNoVat = monthSales.reduce((acc, curr) => acc + (curr.amount / 1.18), 0);
   const companyCommission = monthSales.reduce((acc, curr) => acc + curr.commission, 0);
   const companyDeals = monthSales.length;
+
+  // New Admin Calculation
+  const remainingToTarget = companyMonthlyTarget - companyTotalNoVat;
 
   // Chart Data
   const trendData = Object.entries(mySales.reduce((acc: any, curr) => {
@@ -628,7 +683,7 @@ function App() {
         <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-3xl"></div>
       </div>
 
-      <EditTargetsModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} profile={editingProfile} onSave={handleUpdateTargets} />
+      <EditUserModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} profile={editingProfile} onSave={handleUpdateProfile} />
 
       <aside className={`fixed inset-y-0 right-0 z-50 w-72 bg-[#1e293b]/95 backdrop-blur-xl border-l border-slate-800 transition-transform duration-300 lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} shadow-2xl flex-shrink-0`}>
         <div className="h-full flex flex-col p-6">
@@ -653,6 +708,9 @@ function App() {
                 </button>
                 <button onClick={() => { setActiveTab('add_sale'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'add_sale' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
                   <PlusCircle size={20} /><span>הוספת מכירה</span>
+                </button>
+                <button onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'settings' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
+                  <Settings size={20} /><span>הגדרות נציגים</span>
                 </button>
                 <button onClick={() => { setActiveTab('leaderboard'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'leaderboard' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
                   <Trophy size={20} /><span>טבלת מובילים</span>
@@ -703,15 +761,66 @@ function App() {
 
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
-      <div className="flex-1 flex flex-col min-h-screen relative w-full overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
         <header className="lg:hidden bg-[#1e293b]/80 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center sticky top-0 z-30">
           <div className="flex items-center gap-2"><Wallet size={20} className="text-blue-500" /><h1 className="font-bold text-lg text-white">כמה הרווחתי?</h1></div>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-slate-300"><Menu size={24} /></button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 w-full max-w-[100vw]">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 w-full">
           <div className="w-full space-y-8 max-w-7xl mx-auto">
             
+            {activeTab === 'settings' && isAdmin && (
+                <div className="space-y-6 animate-fade-in">
+                    <div>
+                        <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                            <Settings className="text-blue-400" /> הגדרות נציגים
+                        </h2>
+                        <p className="text-slate-400 mt-1">ניהול משתמשים, יעדים והרשאות</p>
+                    </div>
+                    <GlassCard className="p-0 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-900/50 text-slate-400 font-medium uppercase text-xs">
+                                    <tr>
+                                        <th className="p-4 text-right">שם</th>
+                                        <th className="p-4 text-right">אימייל</th>
+                                        <th className="p-4 text-center">הרשאה</th>
+                                        <th className="p-4 text-right">יעד כספי</th>
+                                        <th className="p-4 text-right">יעד כמותי</th>
+                                        <th className="p-4 text-center">פעולות</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700/50 text-slate-300">
+                                    {profiles.map(profile => (
+                                        <tr key={profile.id} className="hover:bg-white/5 transition-colors">
+                                            <td className="p-4 font-bold text-white">{profile.full_name || '-'}</td>
+                                            <td className="p-4 text-slate-400">{profile.email}</td>
+                                            <td className="p-4 text-center">
+                                                {profile.is_admin ? 
+                                                    <span className="bg-amber-500/10 text-amber-400 px-2 py-1 rounded text-xs border border-amber-500/20">מנהל</span> : 
+                                                    <span className="bg-slate-700/30 text-slate-400 px-2 py-1 rounded text-xs border border-slate-700">נציג</span>
+                                                }
+                                            </td>
+                                            <td className="p-4 text-right">₪{(profile.financial_target || 100000).toLocaleString()}</td>
+                                            <td className="p-4 text-right">{profile.quantity_target || 20}</td>
+                                            <td className="p-4 text-center flex items-center justify-center gap-2">
+                                                <button onClick={() => { setEditingProfile(profile); setShowEditModal(true); }} className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
+                                                    <Edit3 size={16} />
+                                                </button>
+                                                <button onClick={() => handleDeleteUser(profile.id)} className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </GlassCard>
+                </div>
+            )}
+
             {activeTab === 'admin_history' && isAdmin && (
                <div className="space-y-6 animate-fade-in">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -845,6 +954,25 @@ function App() {
                   <StatCard title="כמות עסקאות" value={companyDeals} icon={Target} color="purple" subText={`${salesReps.length} נציגים פעילים`} />
                 </div>
 
+                {/* --- קוביות יעד חודשי (חדש) --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <StatCard 
+                      title="יעד חודשי לחברה" 
+                      value={`₪${companyMonthlyTarget.toLocaleString()}`} 
+                      icon={Target} 
+                      color="orange" 
+                      subText="לחץ לעריכת היעד"
+                      onClick={updateCompanyTarget}
+                   />
+                   <StatCard 
+                      title="נותר ליעד" 
+                      value={`₪${remainingToTarget > 0 ? remainingToTarget.toLocaleString() : 'היעד הושג!'}`} 
+                      icon={Calculator} 
+                      color={remainingToTarget > 0 ? "red" : "green"} 
+                      subText={remainingToTarget > 0 ? "עוד מאמץ קטן!" : "כל הכבוד, עברתם את היעד!"}
+                   />
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <GlassCard className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
@@ -893,7 +1021,7 @@ function App() {
                             <td className="p-3 lg:p-5"><div className="flex items-center gap-2"><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden min-w-[60px]"><div className={`h-full rounded-full ${rep.quantityProgress >= 100 ? 'bg-emerald-500' : rep.quantityProgress >= 50 ? 'bg-blue-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(rep.quantityProgress, 100)}%` }}></div></div><span className="text-xs font-bold w-10 text-right">{Math.round(rep.quantityProgress)}%</span></div></td>
                             <td className="p-3 lg:p-5 text-right font-bold text-blue-400">₪{Math.round(rep.totalNoVat).toLocaleString()}</td>
                             <td className="p-3 lg:p-5 text-right font-bold text-emerald-400">₪{Math.round(rep.bonus).toLocaleString()}</td>
-                            <td className="p-3 lg:p-5 text-center"><button onClick={() => { setEditingProfile(rep); setShowEditModal(true); }} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors" title="עריכת יעדים"><Edit3 size={16} /></button></td>
+                            <td className="p-3 lg:p-5 text-center"><button onClick={() => { setEditingProfile(rep); setShowEditModal(true); }} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors" title="עריכת נציג"><Edit3 size={16} /></button></td>
                           </tr>
                         ))}
                       </tbody>
