@@ -5,7 +5,7 @@ import {
   Users, DollarSign, Target, Menu, X, Crown, Activity, Wallet, Hash, 
   Star, Award, Zap, BarChart3, ArrowUpRight, ArrowDownRight, Sparkles,
   ChevronUp, Calendar, Clock, CheckCircle2, Edit3, Save, ChevronDown,
-  Trash2, Search, Filter, History, Lightbulb
+  Trash2, Search, Filter, History, Lightbulb, Calculator
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -169,7 +169,6 @@ const GlassCard = ({ children, className = '' }: { children: React.ReactNode, cl
 );
 
 const DailyInspiration = () => {
-  // Logic to select a tip based on the date (so it stays consistent for the day)
   const today = new Date();
   const seed = today.getDate() + today.getMonth() * 31 + today.getFullYear();
   
@@ -206,23 +205,25 @@ const DailyInspiration = () => {
   );
 };
 
-const StatCard = ({ title, value, icon: Icon, color, subText }: any) => {
+const StatCard = ({ title, value, icon: Icon, color, subText, onClick }: any) => {
   const gradients: any = {
     blue: "from-blue-600 to-cyan-400",
     purple: "from-purple-600 to-pink-500",
     green: "from-emerald-500 to-teal-400",
     orange: "from-orange-500 to-yellow-400",
-    indigo: "from-indigo-600 to-blue-500"
+    indigo: "from-indigo-600 to-blue-500",
+    red: "from-red-600 to-pink-600"
   };
   
   return (
-    <GlassCard className="group hover:border-slate-600 transition-all duration-300 hover:scale-[1.02]">
+    <GlassCard className={`group hover:border-slate-600 transition-all duration-300 hover:scale-[1.02] ${onClick ? 'cursor-pointer' : ''}`}>
       <div className={`absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br ${gradients[color]} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity duration-500`}></div>
-      <div className="relative z-10">
+      <div className="relative z-10" onClick={onClick}>
         <div className="flex justify-between items-start mb-4">
           <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${gradients[color]} shadow-lg text-white`}>
             <Icon size={26} />
           </div>
+          {onClick && <Edit3 size={16} className="text-slate-500 hover:text-white transition-colors" />}
         </div>
         <div>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
@@ -428,6 +429,22 @@ function App() {
   // Admin History Filter State
   const [historyRepFilter, setHistoryRepFilter] = useState('all');
 
+  // Admin Monthly Global Target (Stored in LocalStorage to avoid Schema change)
+  const [companyMonthlyTarget, setCompanyMonthlyTarget] = useState(500000);
+
+  useEffect(() => {
+    const savedTarget = localStorage.getItem('admin_company_target');
+    if (savedTarget) setCompanyMonthlyTarget(Number(savedTarget));
+  }, []);
+
+  const updateCompanyTarget = () => {
+    const newTarget = prompt("הזן יעד חודשי לחברה (₪):", companyMonthlyTarget.toString());
+    if (newTarget && !isNaN(Number(newTarget))) {
+      setCompanyMonthlyTarget(Number(newTarget));
+      localStorage.setItem('admin_company_target', newTarget);
+    }
+  };
+
   const isAdmin = session?.user?.id === ADMIN_ID;
   const salesReps = profiles.filter(p => p.id !== ADMIN_ID);
   const selectedMonthData = monthOptions.find(m => m.value === selectedMonth) || monthOptions[0];
@@ -554,6 +571,9 @@ function App() {
   const companyTotalNoVat = monthSales.reduce((acc, curr) => acc + (curr.amount / 1.18), 0);
   const companyCommission = monthSales.reduce((acc, curr) => acc + curr.commission, 0);
   const companyDeals = monthSales.length;
+
+  // New Admin Calculation
+  const remainingToTarget = companyMonthlyTarget - companyTotalNoVat;
 
   // Chart Data
   const trendData = Object.entries(mySales.reduce((acc: any, curr) => {
@@ -843,6 +863,25 @@ function App() {
                   <StatCard title="מחזור נטו (ללא מע״מ)" value={`₪${Math.round(companyTotalNoVat).toLocaleString()}`} icon={BarChart3} color="indigo" subText="לפני מע״מ" />
                   <StatCard title="סה״כ בונוסים לתשלום" value={`₪${Math.round(companyCommission).toLocaleString()}`} icon={Wallet} color="green" subText="עמלות לנציגים" />
                   <StatCard title="כמות עסקאות" value={companyDeals} icon={Target} color="purple" subText={`${salesReps.length} נציגים פעילים`} />
+                </div>
+
+                {/* --- קוביות יעד חודשי (חדש) --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <StatCard 
+                      title="יעד חודשי לחברה" 
+                      value={`₪${companyMonthlyTarget.toLocaleString()}`} 
+                      icon={Target} 
+                      color="orange" 
+                      subText="לחץ לעריכת היעד"
+                      onClick={updateCompanyTarget}
+                   />
+                   <StatCard 
+                      title="נותר ליעד" 
+                      value={`₪${remainingToTarget > 0 ? remainingToTarget.toLocaleString() : 'היעד הושג!'}`} 
+                      icon={Calculator} 
+                      color={remainingToTarget > 0 ? "red" : "green"} 
+                      subText={remainingToTarget > 0 ? "עוד מאמץ קטן!" : "כל הכבוד, עברתם את היעד!"}
+                   />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
