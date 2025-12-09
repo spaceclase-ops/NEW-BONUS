@@ -5,8 +5,7 @@ import {
   Users, DollarSign, Target, Menu, X, Crown, Activity, Wallet, Hash, 
   Star, Award, Zap, BarChart3, ArrowUpRight, ArrowDownRight, Sparkles,
   ChevronUp, Calendar, Clock, CheckCircle2, Edit3, Save, ChevronDown,
-  Trash2, Search, Filter, History, Lightbulb, Calculator, Settings,
-  Shield, UserCog, AlertTriangle
+  Trash2, Search, Filter, History, Lightbulb
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -19,8 +18,6 @@ const supabaseUrl = 'https://jfccjqjlqsvwyjdkelxl.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmY2NqcWpscXN2d3lqZGtlbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMjE0MzQsImV4cCI6MjA4MDU5NzQzNH0.yPFHKxKYMHpfIW5QVG4ubAjzf5rrqWQp-6Gjhf6fvUw';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Update this ID to the actual Admin UUID if needed, 
-// though the code now also checks for is_admin flag in the database.
 const ADMIN_ID = '43b1056f-50fd-40a0-9ccf-f2f4c4a57420';
 
 // --- Content Constants (Insights & Tips) ---
@@ -172,6 +169,7 @@ const GlassCard = ({ children, className = '' }: { children: React.ReactNode, cl
 );
 
 const DailyInspiration = () => {
+  // Logic to select a tip based on the date (so it stays consistent for the day)
   const today = new Date();
   const seed = today.getDate() + today.getMonth() * 31 + today.getFullYear();
   
@@ -208,25 +206,23 @@ const DailyInspiration = () => {
   );
 };
 
-const StatCard = ({ title, value, icon: Icon, color, subText, onClick }: any) => {
+const StatCard = ({ title, value, icon: Icon, color, subText }: any) => {
   const gradients: any = {
     blue: "from-blue-600 to-cyan-400",
     purple: "from-purple-600 to-pink-500",
     green: "from-emerald-500 to-teal-400",
     orange: "from-orange-500 to-yellow-400",
-    indigo: "from-indigo-600 to-blue-500",
-    red: "from-red-600 to-pink-600"
+    indigo: "from-indigo-600 to-blue-500"
   };
   
   return (
-    <GlassCard className={`group hover:border-slate-600 transition-all duration-300 hover:scale-[1.02] ${onClick ? 'cursor-pointer' : ''}`}>
+    <GlassCard className="group hover:border-slate-600 transition-all duration-300 hover:scale-[1.02]">
       <div className={`absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br ${gradients[color]} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity duration-500`}></div>
-      <div className="relative z-10" onClick={onClick}>
+      <div className="relative z-10">
         <div className="flex justify-between items-start mb-4">
           <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${gradients[color]} shadow-lg text-white`}>
             <Icon size={26} />
           </div>
-          {onClick && <Edit3 size={16} className="text-slate-500 hover:text-white transition-colors" />}
         </div>
         <div>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
@@ -288,7 +284,66 @@ const AnimatedNumber = ({ value }: { value: number }) => {
   return <span>{displayValue.toLocaleString()}</span>;
 };
 
-// --- Reusable Table Component for Sales ---
+const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: { 
+  isOpen: boolean; onClose: () => void; profile: UserProfile | null; 
+  onSave: (id: string, financial: number, quantity: number) => Promise<void>;
+}) => {
+  const [financialTarget, setFinancialTarget] = useState(profile?.financial_target || 100000);
+  const [quantityTarget, setQuantityTarget] = useState(profile?.quantity_target || 20);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setFinancialTarget(profile.financial_target || 100000);
+      setQuantityTarget(profile.quantity_target || 20);
+    }
+  }, [profile]);
+
+  if (!isOpen || !profile) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(profile.id, financialTarget, quantityTarget);
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onClose}>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <Target className="text-blue-400" size={24} />
+          עריכת יעדים - {profile.full_name || profile.email}
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">יעד כספי חודשי (₪)</label>
+            <input type="number" value={financialTarget} onChange={e => setFinancialTarget(Number(e.target.value))}
+              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">יעד כמותי (עסקאות)</label>
+            <input type="number" value={quantityTarget} onChange={e => setQuantityTarget(Number(e.target.value))}
+              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500" />
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50">
+            {saving ? <Activity className="animate-spin" size={18} /> : <Save size={18} />} שמור
+          </button>
+          <button onClick={onClose} disabled={saving} className="flex-1 bg-slate-800 text-slate-300 py-3 rounded-xl font-bold hover:bg-slate-700 transition">ביטול</button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const SalesHistoryTable = ({ sales, onDelete, isAdmin }: { sales: Sale[], onDelete: (id: string) => void, isAdmin: boolean }) => {
   if (sales.length === 0) return <div className="text-center p-8 text-slate-500">אין מכירות להצגה בתקופה זו</div>;
 
@@ -314,7 +369,7 @@ const SalesHistoryTable = ({ sales, onDelete, isAdmin }: { sales: Sale[], onDele
                 {sale.client_name}
                 {sale.is_split && <span className="block text-[10px] text-purple-400 font-normal">{sale.partner_name ? `שותף: ${sale.partner_name}` : 'עסקה משותפת'}</span>}
               </td>
-              {isAdmin && <td className="p-4 text-slate-400">...</td>} 
+              {isAdmin && <td className="p-4 text-slate-400">TODO: Get Name</td>} 
               <td className="p-4">
                 <span className={`px-2 py-1 rounded-full text-xs ${sale.customer_type === 'חדש' ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-500/10 text-slate-400'}`}>
                   {sale.customer_type}
@@ -350,8 +405,8 @@ function App() {
   
   const monthOptions = getMonthOptions();
   const [selectedMonth, setSelectedMonth] = useState(monthOptions[0].value);
-  
-  // Profile editing state
+  const [editingProfile, setEditingProfile] = useState<UserProfile | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   
@@ -373,33 +428,8 @@ function App() {
   // Admin History Filter State
   const [historyRepFilter, setHistoryRepFilter] = useState('all');
 
-  // Admin Monthly Global Target
-  const [companyMonthlyTarget, setCompanyMonthlyTarget] = useState(500000);
-
-  // Settings / User Management State
-  const [usersList, setUsersList] = useState<UserProfile[]>([]);
-  const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<Partial<UserProfile>>({});
-
-  useEffect(() => {
-    const savedTarget = localStorage.getItem('admin_company_target');
-    if (savedTarget) setCompanyMonthlyTarget(Number(savedTarget));
-  }, []);
-
-  const updateCompanyTarget = () => {
-    const newTarget = prompt("הזן יעד חודשי לחברה (₪):", companyMonthlyTarget.toString());
-    if (newTarget && !isNaN(Number(newTarget))) {
-      setCompanyMonthlyTarget(Number(newTarget));
-      localStorage.setItem('admin_company_target', newTarget);
-    }
-  };
-
-  const isAdmin = session?.user?.id === ADMIN_ID || myProfile?.is_admin === true;
-  
-  // Filter out admins from the Reps list for Leaderboards and Dropdowns
-  // NIV (Admin) should not be here.
-  const salesReps = profiles.filter(p => !p.is_admin && p.id !== ADMIN_ID);
-  
+  const isAdmin = session?.user?.id === ADMIN_ID;
+  const salesReps = profiles.filter(p => p.id !== ADMIN_ID);
   const selectedMonthData = monthOptions.find(m => m.value === selectedMonth) || monthOptions[0];
 
   useEffect(() => {
@@ -415,11 +445,10 @@ function App() {
   }, []);
 
   const fetchData = async () => {
-    const { data: profData } = await supabase.from('profiles').select('*').order('created_at', { ascending: true });
+    const { data: profData } = await supabase.from('profiles').select('*');
     const { data: { user } } = await supabase.auth.getUser();
     if (profData) {
       setProfiles(profData);
-      setUsersList(profData); // For settings page
       const me = profData.find((p: any) => p.id === user?.id);
       setMyProfile(me || null);
       if (me) setTempName(me.full_name || '');
@@ -435,39 +464,23 @@ function App() {
     fetchData();
   };
 
-  const handleDeleteSale = async (saleId: string) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק עסקה זו? הפעולה לא ניתנת לביטול.')) return;
-    const { error } = await supabase.from('sales').delete().eq('id', saleId);
-    if (error) alert('שגיאה במחיקת העסקה: ' + error.message);
-    else fetchData();
-  };
-
-  // --- Settings / User Management Logic ---
-  const handleEditUser = (user: UserProfile) => {
-    setEditingUser(user.id);
-    setEditFormData({
-      full_name: user.full_name,
-      financial_target: user.financial_target || 100000,
-      quantity_target: user.quantity_target || 20,
-      is_admin: user.is_admin
-    });
-  };
-
-  const handleSaveUser = async (userId: string) => {
-    const { error } = await supabase.from('profiles').update(editFormData).eq('id', userId);
-    if (error) {
-      alert("שגיאה בשמירת נתונים: " + error.message);
+  const handleUpdateTargets = async (userId: string, financialTarget: number, quantityTarget: number) => {
+    const { error } = await supabase.from('profiles').update({ financial_target: financialTarget, quantity_target: quantityTarget }).eq('id', userId);
+    if (!error) {
+        await fetchData(); // Wait for data to refresh to ensure UI updates
     } else {
-      setEditingUser(null);
-      fetchData(); // Refresh data to reflect changes everywhere
+        alert("שגיאה בעדכון יעדים: " + error.message);
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm("זהירות! מחיקת משתמש תסיר אותו מהרשימה. האם אתה בטוח?")) {
-        const { error } = await supabase.from('profiles').delete().eq('id', userId);
-        if (error) alert("שגיאה במחיקה: " + error.message);
-        else fetchData();
+  const handleDeleteSale = async (saleId: string) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק עסקה זו? הפעולה לא ניתנת לביטול.')) return;
+    
+    const { error } = await supabase.from('sales').delete().eq('id', saleId);
+    if (error) {
+      alert('שגיאה במחיקת העסקה: ' + error.message);
+    } else {
+      fetchData();
     }
   };
 
@@ -520,9 +533,7 @@ function App() {
                          saleDate.getFullYear() === selectedMonthData.year;
       
       if (userId) return monthMatch && s.user_id === userId;
-      // Admin Logic: Show sales of non-admin users
-      const saleOwner = profiles.find(p => p.id === s.user_id);
-      return monthMatch && saleOwner && !saleOwner.is_admin;
+      return monthMatch && s.user_id !== ADMIN_ID; // General list excludes admin test sales usually
     });
   };
 
@@ -543,9 +554,6 @@ function App() {
   const companyTotalNoVat = monthSales.reduce((acc, curr) => acc + (curr.amount / 1.18), 0);
   const companyCommission = monthSales.reduce((acc, curr) => acc + curr.commission, 0);
   const companyDeals = monthSales.length;
-
-  // New Admin Calculation
-  const remainingToTarget = companyMonthlyTarget - companyTotalNoVat;
 
   // Chart Data
   const trendData = Object.entries(mySales.reduce((acc: any, curr) => {
@@ -581,12 +589,7 @@ function App() {
     const monthMatch = saleDate.getMonth() === selectedMonthData.month && 
                        saleDate.getFullYear() === selectedMonthData.year;
     const repMatch = historyRepFilter === 'all' || s.user_id === historyRepFilter;
-    
-    // Ensure we don't show admin sales in general list if unwanted
-    const saleOwner = profiles.find(p => p.id === s.user_id);
-    const isRepSale = saleOwner && !saleOwner.is_admin;
-    
-    return monthMatch && repMatch && isRepSale;
+    return monthMatch && repMatch && s.user_id !== ADMIN_ID;
   }).sort((a,b) => new Date(b.sale_date).getTime() - new Date(a.sale_date).getTime());
 
   // --- Render ---
@@ -625,6 +628,8 @@ function App() {
         <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-3xl"></div>
       </div>
 
+      <EditTargetsModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} profile={editingProfile} onSave={handleUpdateTargets} />
+
       <aside className={`fixed inset-y-0 right-0 z-50 w-72 bg-[#1e293b]/95 backdrop-blur-xl border-l border-slate-800 transition-transform duration-300 lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} shadow-2xl flex-shrink-0`}>
         <div className="h-full flex flex-col p-6">
           <div className="flex items-center gap-3 mb-10 px-2">
@@ -648,9 +653,6 @@ function App() {
                 </button>
                 <button onClick={() => { setActiveTab('add_sale'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'add_sale' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
                   <PlusCircle size={20} /><span>הוספת מכירה</span>
-                </button>
-                <button onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'settings' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
-                  <Settings size={20} /><span>הגדרות וניהול</span>
                 </button>
                 <button onClick={() => { setActiveTab('leaderboard'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'leaderboard' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
                   <Trophy size={20} /><span>טבלת מובילים</span>
@@ -707,101 +709,9 @@ function App() {
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-slate-300"><Menu size={24} /></button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 w-full">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 w-full max-w-[100vw]">
           <div className="w-full space-y-8 max-w-7xl mx-auto">
             
-            {/* --- ADMIN SETTINGS & USER MANAGEMENT --- */}
-            {activeTab === 'settings' && isAdmin && (
-              <div className="space-y-6 animate-fade-in">
-                 <div className="flex flex-col gap-2">
-                    <h2 className="text-3xl font-black text-white flex items-center gap-3">
-                      <Settings className="text-blue-400" /> הגדרות וניהול עובדים
-                    </h2>
-                    <p className="text-slate-400">ניהול נציגים, יעדים והרשאות מערכת</p>
-                 </div>
-
-                 <GlassCard className="overflow-hidden p-0">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-900/50 text-slate-400 font-medium uppercase text-xs">
-                          <tr>
-                            <th className="p-4 text-right">שם מלא</th>
-                            <th className="p-4 text-right">אימייל</th>
-                            <th className="p-4 text-center">יעד כספי (₪)</th>
-                            <th className="p-4 text-center">יעד כמותי</th>
-                            <th className="p-4 text-center">הרשאה</th>
-                            <th className="p-4 text-center">פעולות</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700/50 text-slate-300">
-                          {usersList.map(user => {
-                            const isEditing = editingUser === user.id;
-                            return (
-                              <tr key={user.id} className="hover:bg-white/5 transition-colors">
-                                <td className="p-4">
-                                  {isEditing ? (
-                                    <input className="bg-slate-800 border border-slate-600 rounded p-1 text-white w-full" 
-                                      value={editFormData.full_name || ''} 
-                                      onChange={e => setEditFormData({...editFormData, full_name: e.target.value})} />
-                                  ) : (
-                                    <div className="font-bold text-white flex items-center gap-2">
-                                      {user.full_name || 'ללא שם'}
-                                      {user.id === myProfile?.id && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">אני</span>}
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="p-4 text-slate-400 font-mono text-xs">{user.email}</td>
-                                <td className="p-4 text-center">
-                                  {isEditing ? (
-                                    <input type="number" className="bg-slate-800 border border-slate-600 rounded p-1 text-white w-24 text-center" 
-                                      value={editFormData.financial_target} 
-                                      onChange={e => setEditFormData({...editFormData, financial_target: Number(e.target.value)})} />
-                                  ) : (
-                                    <span>₪{user.financial_target?.toLocaleString()}</span>
-                                  )}
-                                </td>
-                                <td className="p-4 text-center">
-                                  {isEditing ? (
-                                    <input type="number" className="bg-slate-800 border border-slate-600 rounded p-1 text-white w-16 text-center" 
-                                      value={editFormData.quantity_target} 
-                                      onChange={e => setEditFormData({...editFormData, quantity_target: Number(e.target.value)})} />
-                                  ) : (
-                                    <span>{user.quantity_target}</span>
-                                  )}
-                                </td>
-                                <td className="p-4 text-center">
-                                  {isEditing ? (
-                                     <button onClick={() => setEditFormData({...editFormData, is_admin: !editFormData.is_admin})}
-                                      className={`px-3 py-1 rounded-full text-xs font-bold ${editFormData.is_admin ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' : 'bg-slate-700 text-slate-400'}`}>
-                                      {editFormData.is_admin ? 'מנהל' : 'נציג'}
-                                     </button>
-                                  ) : (
-                                    user.is_admin ? <span className="text-amber-400 text-xs font-bold border border-amber-500/30 px-2 py-1 rounded-full">מנהל</span> : <span className="text-slate-500 text-xs">נציג</span>
-                                  )}
-                                </td>
-                                <td className="p-4 flex items-center justify-center gap-2">
-                                  {isEditing ? (
-                                    <>
-                                      <button onClick={() => handleSaveUser(user.id)} className="p-2 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-lg"><Save size={16} /></button>
-                                      <button onClick={() => setEditingUser(null)} className="p-2 bg-slate-700 text-slate-300 hover:bg-slate-600 rounded-lg"><X size={16} /></button>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <button onClick={() => handleEditUser(user)} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg"><Edit3 size={16} /></button>
-                                      <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg" title="מחק משתמש"><Trash2 size={16} /></button>
-                                    </>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                 </GlassCard>
-              </div>
-            )}
-
             {activeTab === 'admin_history' && isAdmin && (
                <div className="space-y-6 animate-fade-in">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -838,7 +748,55 @@ function App() {
                     <div className="p-4 border-b border-slate-700/50 bg-slate-900/30 flex justify-between items-center">
                        <div className="text-sm text-slate-400">נמצאו {adminHistorySales.length} עסקאות</div>
                     </div>
-                    <SalesHistoryTable sales={adminHistorySales} onDelete={handleDeleteSale} isAdmin={true} />
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-900/50 text-slate-400 font-medium uppercase text-xs">
+                          <tr>
+                            <th className="p-4 text-right">תאריך</th>
+                            <th className="p-4 text-right">נציג</th>
+                            <th className="p-4 text-right">לקוח</th>
+                            <th className="p-4 text-right">סוג</th>
+                            <th className="p-4 text-left">סכום</th>
+                            <th className="p-4 text-left">בונוס</th>
+                            <th className="p-4 text-center">פעולות</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700/50 text-slate-300">
+                          {adminHistorySales.map(sale => {
+                            const repName = profiles.find(p => p.id === sale.user_id)?.full_name || 'לא ידוע';
+                            return (
+                              <tr key={sale.id} className="hover:bg-white/5 transition-colors group">
+                                <td className="p-4">{new Date(sale.sale_date).toLocaleDateString('he-IL')}</td>
+                                <td className="p-4 font-bold text-white">{repName}</td>
+                                <td className="p-4">
+                                  {sale.client_name}
+                                  {sale.is_split && <span className="block text-[10px] text-purple-400 font-normal">עסקה משותפת</span>}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-1 rounded-full text-xs ${sale.customer_type === 'חדש' ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-500/10 text-slate-400'}`}>
+                                    {sale.customer_type}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-left font-mono">₪{sale.amount.toLocaleString()}</td>
+                                <td className="p-4 text-left font-mono text-emerald-400 font-bold">₪{Math.round(sale.commission).toLocaleString()}</td>
+                                <td className="p-4 text-center">
+                                  <button 
+                                    onClick={() => handleDeleteSale(sale.id)}
+                                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="מחק עסקה"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {adminHistorySales.length === 0 && (
+                            <tr><td colSpan={7} className="text-center p-8 text-slate-500">לא נמצאו מכירות תואמות לסינון</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                  </GlassCard>
                </div>
             )}
@@ -887,25 +845,6 @@ function App() {
                   <StatCard title="כמות עסקאות" value={companyDeals} icon={Target} color="purple" subText={`${salesReps.length} נציגים פעילים`} />
                 </div>
 
-                {/* --- קוביות יעד חודשי (חדש) --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <StatCard 
-                      title="יעד חודשי לחברה" 
-                      value={`₪${companyMonthlyTarget.toLocaleString()}`} 
-                      icon={Target} 
-                      color="orange" 
-                      subText="לחץ לעריכת היעד"
-                      onClick={updateCompanyTarget}
-                    />
-                    <StatCard 
-                      title="נותר ליעד" 
-                      value={`₪${remainingToTarget > 0 ? remainingToTarget.toLocaleString() : 'היעד הושג!'}`} 
-                      icon={Calculator} 
-                      color={remainingToTarget > 0 ? "red" : "green"} 
-                      subText={remainingToTarget > 0 ? "עוד מאמץ קטן!" : "כל הכבוד, עברתם את היעד!"}
-                    />
-                </div>
-
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <GlassCard className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
@@ -942,7 +881,7 @@ function App() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-900/50 text-slate-400 font-medium uppercase text-xs">
-                        <tr><th className="p-3 lg:p-5 text-right">#</th><th className="p-3 lg:p-5 text-right">שם הנציג</th><th className="p-3 lg:p-5 text-center">עסקאות</th><th className="p-3 lg:p-5 text-center">יעד</th><th className="p-3 lg:p-5 text-center">התקדמות</th><th className="p-3 lg:p-5 text-right">מחזור</th><th className="p-3 lg:p-5 text-right">בונוס</th></tr>
+                        <tr><th className="p-3 lg:p-5 text-right">#</th><th className="p-3 lg:p-5 text-right">שם הנציג</th><th className="p-3 lg:p-5 text-center">עסקאות</th><th className="p-3 lg:p-5 text-center">יעד</th><th className="p-3 lg:p-5 text-center">התקדמות</th><th className="p-3 lg:p-5 text-right">מחזור</th><th className="p-3 lg:p-5 text-right">בונוס</th><th className="p-3 lg:p-5 text-center">פעולות</th></tr>
                       </thead>
                       <tbody className="divide-y divide-slate-700/50 text-slate-300">
                         {repPerformance.map((rep, index) => (
@@ -954,11 +893,12 @@ function App() {
                             <td className="p-3 lg:p-5"><div className="flex items-center gap-2"><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden min-w-[60px]"><div className={`h-full rounded-full ${rep.quantityProgress >= 100 ? 'bg-emerald-500' : rep.quantityProgress >= 50 ? 'bg-blue-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(rep.quantityProgress, 100)}%` }}></div></div><span className="text-xs font-bold w-10 text-right">{Math.round(rep.quantityProgress)}%</span></div></td>
                             <td className="p-3 lg:p-5 text-right font-bold text-blue-400">₪{Math.round(rep.totalNoVat).toLocaleString()}</td>
                             <td className="p-3 lg:p-5 text-right font-bold text-emerald-400">₪{Math.round(rep.bonus).toLocaleString()}</td>
+                            <td className="p-3 lg:p-5 text-center"><button onClick={() => { setEditingProfile(rep); setShowEditModal(true); }} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors" title="עריכת יעדים"><Edit3 size={16} /></button></td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot className="bg-slate-900/80 text-white font-bold">
-                        <tr><td className="p-3 lg:p-5" colSpan={2}>סה״כ</td><td className="p-3 lg:p-5 text-center">{companyDeals}</td><td className="p-3 lg:p-5"></td><td className="p-3 lg:p-5"></td><td className="p-3 lg:p-5 text-right text-blue-400">₪{Math.round(companyTotalNoVat).toLocaleString()}</td><td className="p-3 lg:p-5 text-right text-emerald-400">₪{Math.round(companyCommission).toLocaleString()}</td></tr>
+                        <tr><td className="p-3 lg:p-5" colSpan={2}>סה״כ</td><td className="p-3 lg:p-5 text-center">{companyDeals}</td><td className="p-3 lg:p-5"></td><td className="p-3 lg:p-5"></td><td className="p-3 lg:p-5 text-right text-blue-400">₪{Math.round(companyTotalNoVat).toLocaleString()}</td><td className="p-3 lg:p-5 text-right text-emerald-400">₪{Math.round(companyCommission).toLocaleString()}</td><td className="p-3 lg:p-5"></td></tr>
                       </tfoot>
                     </table>
                   </div>
