@@ -4,7 +4,8 @@ import {
   LayoutDashboard, PlusCircle, Trophy, LogOut, TrendingUp, 
   Users, DollarSign, Target, Menu, X, Crown, Activity, Wallet, Hash, 
   Star, Award, Zap, BarChart3, ArrowUpRight, ArrowDownRight, Sparkles,
-  ChevronUp, Calendar, Clock, CheckCircle2, Edit3, Save, ChevronDown
+  ChevronUp, Calendar, Clock, CheckCircle2, Edit3, Save, ChevronDown,
+  Trash2, Search, Filter, History
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -12,12 +13,14 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// --- Supabase Configuration ---
 const supabaseUrl = 'https://jfccjqjlqsvwyjdkelxl.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmY2NqcWpscXN2d3lqZGtlbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMjE0MzQsImV4cCI6MjA4MDU5NzQzNH0.yPFHKxKYMHpfIW5QVG4ubAjzf5rrqWQp-6Gjhf6fvUw';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const ADMIN_ID = '43b1056f-50fd-40a0-9ccf-f2f4c4a57420';
 
+// --- Types ---
 interface Sale {
   id: string; user_id: string; created_by: string; sale_date: string;
   client_name: string; client_id: string; subscription_type: string; customer_type: string;
@@ -29,6 +32,7 @@ interface UserProfile {
   financial_target: number; quantity_target: number;
 }
 
+// --- Helpers ---
 const getMonthOptions = () => {
   const months = [];
   const now = new Date();
@@ -44,6 +48,7 @@ const getMonthOptions = () => {
   return months;
 };
 
+// --- Components ---
 const GlassCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
@@ -186,6 +191,57 @@ const EditTargetsModal = ({ isOpen, onClose, profile, onSave }: {
   );
 };
 
+const SalesHistoryTable = ({ sales, onDelete, isAdmin }: { sales: Sale[], onDelete: (id: string) => void, isAdmin: boolean }) => {
+  if (sales.length === 0) return <div className="text-center p-8 text-slate-500">אין מכירות להצגה בתקופה זו</div>;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-slate-900/50 text-slate-400 font-medium uppercase text-xs">
+          <tr>
+            <th className="p-4 text-right">תאריך</th>
+            <th className="p-4 text-right">לקוח</th>
+            {isAdmin && <th className="p-4 text-right">נציג</th>}
+            <th className="p-4 text-right">סוג</th>
+            <th className="p-4 text-left">סכום</th>
+            <th className="p-4 text-left">בונוס</th>
+            <th className="p-4 text-center">פעולות</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-700/50 text-slate-300">
+          {sales.map(sale => (
+            <tr key={sale.id} className="hover:bg-white/5 transition-colors group">
+              <td className="p-4">{new Date(sale.sale_date).toLocaleDateString('he-IL')}</td>
+              <td className="p-4 font-bold text-white">
+                {sale.client_name}
+                {sale.is_split && <span className="block text-[10px] text-purple-400 font-normal">{sale.partner_name ? `שותף: ${sale.partner_name}` : 'עסקה משותפת'}</span>}
+              </td>
+              {isAdmin && <td className="p-4 text-slate-400">TODO: Get Name</td>} 
+              <td className="p-4">
+                <span className={`px-2 py-1 rounded-full text-xs ${sale.customer_type === 'חדש' ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-500/10 text-slate-400'}`}>
+                  {sale.customer_type}
+                </span>
+              </td>
+              <td className="p-4 text-left font-mono">₪{sale.amount.toLocaleString()}</td>
+              <td className="p-4 text-left font-mono text-emerald-400 font-bold">₪{Math.round(sale.commission).toLocaleString()}</td>
+              <td className="p-4 text-center">
+                <button 
+                  onClick={() => onDelete(sale.id)}
+                  className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                  title="מחק עסקה"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// --- Main App Component ---
 function App() {
   const [session, setSession] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -201,6 +257,7 @@ function App() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   
+  // Sales Form State
   const [amount, setAmount] = useState('');
   const [client, setClient] = useState('');
   const [clientId, setClientId] = useState('');
@@ -210,8 +267,13 @@ function App() {
   const [partnerId, setPartnerId] = useState('');
   const [selectedSalesRep, setSelectedSalesRep] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  
+  // Auth State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Admin History Filter State
+  const [historyRepFilter, setHistoryRepFilter] = useState('all');
 
   const isAdmin = session?.user?.id === ADMIN_ID;
   const salesReps = profiles.filter(p => p.id !== ADMIN_ID);
@@ -252,6 +314,17 @@ function App() {
   const handleUpdateTargets = async (userId: string, financialTarget: number, quantityTarget: number) => {
     await supabase.from('profiles').update({ financial_target: financialTarget, quantity_target: quantityTarget }).eq('id', userId);
     fetchData();
+  };
+
+  const handleDeleteSale = async (saleId: string) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק עסקה זו? הפעולה לא ניתנת לביטול.')) return;
+    
+    const { error } = await supabase.from('sales').delete().eq('id', saleId);
+    if (error) {
+      alert('שגיאה במחיקת העסקה: ' + error.message);
+    } else {
+      fetchData();
+    }
   };
 
   const handleSubmitSale = async (e: React.FormEvent) => {
@@ -295,17 +368,27 @@ function App() {
     setFormLoading(false);
   };
 
-  const monthSales = sales.filter(s => {
-    const saleDate = new Date(s.sale_date);
-    return saleDate.getMonth() === selectedMonthData.month && 
-           saleDate.getFullYear() === selectedMonthData.year && s.user_id !== ADMIN_ID;
-  });
+  // --- Filter Logic ---
+  const getFilteredSales = (userId?: string) => {
+    return sales.filter(s => {
+      const saleDate = new Date(s.sale_date);
+      const monthMatch = saleDate.getMonth() === selectedMonthData.month && 
+                         saleDate.getFullYear() === selectedMonthData.year;
+      
+      if (userId) return monthMatch && s.user_id === userId;
+      return monthMatch && s.user_id !== ADMIN_ID; // General list excludes admin test sales usually
+    });
+  };
+
+  const monthSales = getFilteredSales(); 
 
   const mySales = sales.filter(s => 
     s.user_id === session?.user?.id && 
     new Date(s.sale_date).getMonth() === selectedMonthData.month &&
     new Date(s.sale_date).getFullYear() === selectedMonthData.year
-  );
+  ).sort((a,b) => new Date(b.sale_date).getTime() - new Date(a.sale_date).getTime());
+
+  // Calculations
   const myTotalCommission = mySales.reduce((acc, curr) => acc + curr.commission, 0);
   const myTotalSales = mySales.reduce((acc, curr) => acc + curr.amount, 0);
   const myTotalDeals = mySales.length;
@@ -315,6 +398,7 @@ function App() {
   const companyCommission = monthSales.reduce((acc, curr) => acc + curr.commission, 0);
   const companyDeals = monthSales.length;
 
+  // Chart Data
   const trendData = Object.entries(mySales.reduce((acc: any, curr) => {
     const d = new Date(curr.sale_date).getDate(); 
     acc[d] = (acc[d] || 0) + curr.commission;
@@ -342,6 +426,16 @@ function App() {
     return acc;
   }, {})).map(([d, a]) => ({ name: `${d}`, amount: a })).sort((a: any, b: any) => parseInt(a.name) - parseInt(b.name));
 
+  // Admin History Filter Logic
+  const adminHistorySales = sales.filter(s => {
+    const saleDate = new Date(s.sale_date);
+    const monthMatch = saleDate.getMonth() === selectedMonthData.month && 
+                       saleDate.getFullYear() === selectedMonthData.year;
+    const repMatch = historyRepFilter === 'all' || s.user_id === historyRepFilter;
+    return monthMatch && repMatch && s.user_id !== ADMIN_ID;
+  }).sort((a,b) => new Date(b.sale_date).getTime() - new Date(a.sale_date).getTime());
+
+  // --- Render ---
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f172a] relative overflow-hidden" dir="rtl">
@@ -396,6 +490,9 @@ function App() {
               <>
                 <button onClick={() => { setActiveTab('admin'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'admin' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
                   <Crown size={20} /><span>דשבורד ניהולי</span>
+                </button>
+                <button onClick={() => { setActiveTab('admin_history'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'admin_history' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
+                  <History size={20} /><span>היסטוריית מכירות</span>
                 </button>
                 <button onClick={() => { setActiveTab('add_sale'); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${activeTab === 'add_sale' ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-400 font-bold border border-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50'}`}>
                   <PlusCircle size={20} /><span>הוספת מכירה</span>
@@ -458,6 +555,95 @@ function App() {
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 w-full">
           <div className="w-full space-y-8">
             
+            {activeTab === 'admin_history' && isAdmin && (
+               <div className="space-y-6 animate-fade-in">
+                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                   <div>
+                     <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                       <History className="text-blue-400" /> היסטוריית מכירות
+                     </h2>
+                     <p className="text-slate-400 mt-1">צפייה וניהול כלל העסקאות בארגון</p>
+                   </div>
+                   <div className="flex gap-4">
+                      <div className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-xl border border-slate-700">
+                        <Filter size={16} className="text-slate-400" />
+                        <select 
+                          value={historyRepFilter} 
+                          onChange={(e) => setHistoryRepFilter(e.target.value)}
+                          className="bg-transparent text-white outline-none border-none text-sm"
+                        >
+                          <option value="all" className="bg-slate-900 text-white">כל הנציגים</option>
+                          {salesReps.map(rep => (
+                            <option key={rep.id} value={rep.id} className="bg-slate-900 text-white">{rep.full_name || rep.email}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-xl border border-slate-700">
+                        <Calendar size={16} className="text-slate-400" />
+                        <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="bg-transparent text-white outline-none border-none text-sm">
+                          {monthOptions.map(m => <option key={m.value} value={m.value} className="bg-slate-900">{m.label}</option>)}
+                        </select>
+                      </div>
+                   </div>
+                 </div>
+
+                 <GlassCard className="p-0 overflow-hidden">
+                    <div className="p-4 border-b border-slate-700/50 bg-slate-900/30 flex justify-between items-center">
+                       <div className="text-sm text-slate-400">נמצאו {adminHistorySales.length} עסקאות</div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-900/50 text-slate-400 font-medium uppercase text-xs">
+                          <tr>
+                            <th className="p-4 text-right">תאריך</th>
+                            <th className="p-4 text-right">נציג</th>
+                            <th className="p-4 text-right">לקוח</th>
+                            <th className="p-4 text-right">סוג</th>
+                            <th className="p-4 text-left">סכום</th>
+                            <th className="p-4 text-left">בונוס</th>
+                            <th className="p-4 text-center">פעולות</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700/50 text-slate-300">
+                          {adminHistorySales.map(sale => {
+                            const repName = profiles.find(p => p.id === sale.user_id)?.full_name || 'לא ידוע';
+                            return (
+                              <tr key={sale.id} className="hover:bg-white/5 transition-colors group">
+                                <td className="p-4">{new Date(sale.sale_date).toLocaleDateString('he-IL')}</td>
+                                <td className="p-4 font-bold text-white">{repName}</td>
+                                <td className="p-4">
+                                  {sale.client_name}
+                                  {sale.is_split && <span className="block text-[10px] text-purple-400 font-normal">עסקה משותפת</span>}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-1 rounded-full text-xs ${sale.customer_type === 'חדש' ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-500/10 text-slate-400'}`}>
+                                    {sale.customer_type}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-left font-mono">₪{sale.amount.toLocaleString()}</td>
+                                <td className="p-4 text-left font-mono text-emerald-400 font-bold">₪{Math.round(sale.commission).toLocaleString()}</td>
+                                <td className="p-4 text-center">
+                                  <button 
+                                    onClick={() => handleDeleteSale(sale.id)}
+                                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="מחק עסקה"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {adminHistorySales.length === 0 && (
+                            <tr><td colSpan={7} className="text-center p-8 text-slate-500">לא נמצאו מכירות תואמות לסינון</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                 </GlassCard>
+               </div>
+            )}
+
             {(activeTab === 'admin' || (isAdmin && activeTab === 'dashboard')) && isAdmin && (
               <div className="space-y-8 animate-fade-in">
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
@@ -560,6 +746,13 @@ function App() {
                     </table>
                   </div>
                 </GlassCard>
+                
+                {/* קיצור דרך למעבר להיסטוריית מכירות */}
+                <div className="flex justify-center">
+                    <button onClick={() => setActiveTab('admin_history')} className="flex items-center gap-2 text-blue-400 hover:text-blue-300 font-bold bg-blue-500/10 px-6 py-3 rounded-xl transition">
+                        <History size={18} /> עבור להיסטוריית מכירות מלאה
+                    </button>
+                </div>
               </div>
             )}
 
@@ -609,6 +802,16 @@ function App() {
                     <div className="flex justify-center gap-6 mt-4"><div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div><span className="text-xs text-slate-400">רגיל</span></div><div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500"></div><span className="text-xs text-slate-400">משותף</span></div></div>
                   </GlassCard>
                 </div>
+                
+                {/* --- תוספת: היסטוריית מכירות אישית --- */}
+                <GlassCard className="overflow-hidden p-0">
+                  <div className="p-6 border-b border-slate-700/50 bg-slate-900/30">
+                    <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                        <History size={20} className="text-blue-400" /> היסטוריית עסקאות - {selectedMonthData.label}
+                    </h3>
+                  </div>
+                  <SalesHistoryTable sales={mySales} onDelete={handleDeleteSale} isAdmin={false} />
+                </GlassCard>
               </div>
             )}
 
